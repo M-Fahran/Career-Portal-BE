@@ -1,0 +1,6 @@
+docker compose up -d → database hidup
+npx prisma migrate dev → kalau schema berubah total
+npx prisma migrate dev --name user_is_active → migrate untuk schema berubah sebagian
+npx prisma studio → kalau mau mengintip isi tabel
+npx prisma generate → kalau ada perubahan di schema
+rapihin code Shift Alt F

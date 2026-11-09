@@ -1,0 +1,22 @@
+# Dependencies
+node_modules/
+
+# Environment variables & rahasia
+.env*
+!.env.example
+
+# Hasil build / compile
+dist/
+
+# File upload (CV, dokumen)
+uploads/
+
+# Logs
+*.log
+npm-debug.log*
+
+# File sistem operasi
+.DS_Store
+
+# Testing
+coverage/

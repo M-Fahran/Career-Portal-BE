@@ -1,0 +1,231 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum JobStatus {
+  PUBLISHED
+  CLOSED
+}
+
+enum ApplicationStatus {
+  PROCESS
+  SCREENING
+  ACCEPTED
+  REJECTED
+}
+
+enum EmploymentType {
+  FULL_TIME
+  PART_TIME
+  INTERNSHIP
+  CONTRACT
+}
+
+enum WorkMode {
+  WFO
+  WFH
+  HYBRID
+}
+
+enum EducationLevel {
+  SMA
+  DIPLOMA
+  BACHELOR
+  MASTER
+  DOCTORATE
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  PREFER_NOT_TO_SAY
+}
+
+enum NoticePeriod {
+  IMMEDIATE
+  ONE_WEEK
+  TWO_WEEKS
+  ONE_MONTH
+  TWO_MONTHS
+  THREE_MONTHS
+}
+
+model Role {
+  id   String @id @default(uuid())
+  name String @unique
+}
+
+model Department {
+  id         String       @id @default(uuid())
+  name       String       @unique
+  jobPosting JobPosting[]
+}
+
+model User {
+  id              String                     @id @default(uuid())
+  name            String
+  email           String                     @unique
+  passwordHash    String
+  jobPosting      JobPosting[]
+  statusHistories ApplicationStatusHistory[]
+  notifications   Notification[]             @relation("NotificationRecipient")
+  createdAt       DateTime                   @default(now())
+  isActive        Boolean                    @default(true)
+}
+
+model JobCategory {
+  id         String       @id @default(uuid())
+  name       String       @unique
+  jobPosting JobPosting[]
+}
+
+model Candidate {
+  id           String  @id @default(uuid())
+  fullName     String?
+  email        String  @unique
+  phone        String?
+  passwordHash String
+
+  gender         Gender?
+  province       String?
+  city           String?
+  address        String?
+  institution    String?
+  major          String?
+  graduationYear String?
+  linkedinUrl    String?
+  portfolioUrl   String?
+  summary        String?  @db.Text
+
+  birthDate      DateTime?
+  educationLevel EducationLevel?
+  noticePeriod   NoticePeriod?
+  photoUrl       String?
+  onboardedAt    DateTime?
+
+  createdAt DateTime @default(now())
+
+  resumes      CandidateResume[]
+  certificates CandidateCertificate[]
+  experiences  CandidateExperience[]
+  skills       String[]               @default([])
+  languages    String[]               @default([])
+  savedJobs    CandidateSavedJob[]
+  applications Application[]
+}
+
+model CandidateResume {
+  id           String        @id @default(uuid())
+  fileUrl      String
+  isPrimary    Boolean       @default(false)
+  uploadedAt   DateTime      @default(now())
+  candidateId  String
+  candidate    Candidate     @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  applications Application[]
+}
+
+model JobPosting {
+  id             String          @id @default(uuid())
+  title          String
+  description    String
+  qualifications EducationLevel[] @default([])
+  employmentType EmploymentType
+  workMode       WorkMode?
+  status         JobStatus       @default(PUBLISHED)
+  deadline       DateTime
+
+  departmentId   String?
+  department     Department?        @relation(fields: [departmentId], references: [id])
+  categoryId     String?
+  category       JobCategory?       @relation(fields: [categoryId], references: [id])
+  postedById     String
+  postedBy       User               @relation(fields: [postedById], references: [id])
+  applications   Application[]
+  requiredSkills String[]           @default([])
+  savedBy        CandidateSavedJob[]
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+}
+
+model Application {
+  id              String                     @id @default(uuid())
+  status          ApplicationStatus          @default(PROCESS)
+  candidateId     String
+  candidate       Candidate                  @relation(fields: [candidateId], references: [id])
+  jobPostingId    String
+  jobPosting      JobPosting                 @relation(fields: [jobPostingId], references: [id])
+  resumeId        String
+  resume          CandidateResume            @relation(fields: [resumeId], references: [id])
+  statusHistories ApplicationStatusHistory[]
+  notifications   Notification[]
+  appliedAt       DateTime                   @default(now())
+  updatedAt       DateTime                   @updatedAt
+
+  @@unique([candidateId, jobPostingId])
+  @@index([jobPostingId, status])
+}
+
+model ApplicationStatusHistory {
+  id            String             @id @default(uuid())
+  oldStatus     ApplicationStatus?
+  newStatus     ApplicationStatus
+  note          String?
+  applicationId String
+  application   Application        @relation(fields: [applicationId], references: [id])
+  changedById   String
+  changedBy     User               @relation(fields: [changedById], references: [id])
+  changedAt     DateTime           @default(now())
+}
+
+model Notification {
+  id            String      @id @default(uuid())
+  recipientId   String
+  recipient     User        @relation("NotificationRecipient", fields: [recipientId], references: [id])
+  applicationId String
+  application   Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  type          String
+  message       String
+  isRead        Boolean     @default(false)
+  sentAt        DateTime    @default(now())
+
+  @@index([recipientId, isRead, sentAt])
+  @@index([sentAt])
+}
+
+model CandidateCertificate {
+  id          String    @id @default(uuid())
+  name        String
+  issuer      String
+  issueDate   DateTime?
+  expiryDate  DateTime?
+  description String?
+  candidateId String
+  candidate   Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  createdAt   DateTime  @default(now())
+}
+
+model CandidateExperience {
+  id          String    @id @default(uuid())
+  company     String
+  position    String
+  startDate   DateTime
+  endDate     DateTime?
+  description String?
+  candidateId String
+  candidate   Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+}
+
+model CandidateSavedJob {
+  candidateId  String
+  jobPostingId String
+  candidate    Candidate  @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  jobPosting   JobPosting @relation(fields: [jobPostingId], references: [id], onDelete: Cascade)
+  savedAt      DateTime   @default(now())
+
+  @@id([candidateId, jobPostingId])
+  @@index([jobPostingId])
+}
